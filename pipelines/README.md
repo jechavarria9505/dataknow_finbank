@@ -29,8 +29,9 @@ En esencia, este pipeline actúa como un **motor de ingestión configurable**, d
 ## Arquitectura del Pipeline
 
 
+![arquitectura pipeline ](https://github.com/jechavarria9505/dataknow_finbank/blob/4d289d7ccc656fdb26299cc8b5d20ed5bf2b9984/docs/images/Pipeline/pipeline_ingesta.jpeg)
 
-<p align="center"><img src="docs/images/pipeline/pipeline_ingesta.jpeg" width="800"/></p>
+
 
 
 
