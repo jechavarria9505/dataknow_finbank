@@ -1,706 +1,342 @@
-\## Generación y Carga de Datos Dummy (Data Engineering)
+<h1 align="center">Generación y Carga de Datos Dummy</h1>
+<p align="center"><b>Data Engineering Module — FinBank</b></p>
 
+<br>
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-\---
+<h2><b>Descripcion</b></h2>
 
+Este módulo implementa un flujo completo de generación de datos sintéticos en el dominio financiero y su posterior carga optimizada hacia Azure SQL Database.
 
+El objetivo no es únicamente generar datos, sino construir un entorno controlado que permita simular condiciones reales de negocio, evaluar rendimiento y validar pipelines de datos en diferentes capas.
 
-\## Overview
+<br>
 
+<b>Este componente permite:</b>
 
+* validar pipelines bajo arquitectura Bronze, Silver y Gold
+* probar reglas de calidad de datos en escenarios reales
+* simular comportamiento financiero con datos controlados
+* evaluar rendimiento en cargas de gran volumen
 
-Este proyecto implementa un flujo completo de \*\*simulación de datos bancarios\*\* y su posterior \*\*carga optimizada en Azure SQL Database\*\*, siguiendo prácticas modernas de ingeniería de datos.
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Arquitectura</b></h2>
 
+<br>
 
-El objetivo es construir un entorno robusto para:
+<pre>
+Generación (Python)
+        │
+        ▼
+Archivos (CSV / Parquet / JSON)
+        │
+        ▼
+Loader Optimizado (Streaming + Chunking)
+        │
+        ▼
+Azure SQL Database
+</pre>
 
+<br>
 
+Este flujo desacopla la generación, persistencia y carga de datos, permitiendo mayor control y escalabilidad.
 
-\- Validación de pipelines (Bronze / Silver / Gold)
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-\- Pruebas de calidad de datos
+<h2><b>Generación de Datos</b></h2>
 
-\- Simulación de escenarios reales del negocio financiero
+<h3><b>Objetivo</b></h3>
 
-\- Evaluación de performance en cargas masivas
+Simular un ecosistema bancario completo mediante datos:
 
+* realistas
+* escalables
+* con errores controlados
+* diseñados para pruebas de calidad y pipelines
 
+<br>
 
-\---
+<h3><b>Volumen de datos</b></h3>
 
+| Tabla              | Registros |
+| ------------------ | --------- |
+| TB_CLIENTES_CORE   | 10,000    |
+| TB_PRODUCTOS_CAT   | 50        |
+| TB_SUCURSALES_RED  | 200       |
+| TB_MOV_FINANCIEROS | 500,000   |
+| TB_OBLIGACIONES    | 30,000    |
+| TB_COMISIONES_LOG  | 80,000    |
 
+<br>
 
-\## Arquitectura
+<h3><b>Modelado</b></h3>
 
+El modelo de datos busca representar un entorno financiero realista:
 
+<b>Clientes</b>
 
-```
+* segmentación (BASICO, ESTANDAR, PREMIUM, ELITE)
+* score crediticio
+* canal de adquisición
 
-┌──────────────────────────────────────────────┐
+<b>Productos</b>
 
-│        Generación de Datos (Python)          │
+* crédito, ahorro y transaccional
+* tasas y condiciones
 
-│   Faker + NumPy + Distribuciones reales      │
+<b>Sucursales</b>
 
-└─────────────────────────────┬────────────────┘
+* ubicación geográfica
+* tipo de punto
 
-&#x20;                             │
+<b>Movimientos</b>
 
-&#x20;                             ▼
+* distribución lognormal
+* múltiples canales (APP, WEB, CAJERO)
+* identificación de dispositivo
 
-┌──────────────────────────────────────────────┐
+<b>Obligaciones</b>
 
-│   Archivos Output (CSV / Parquet / JSON)     │
+* simulación de créditos
+* mora y riesgo
 
-└─────────────────────────────┬────────────────┘
+<b>Comisiones</b>
 
-&#x20;                             │
+* tipos de cobro
+* estado de pago
 
-&#x20;                             ▼
+<hr style="border: 1px solid #eee;">
 
-┌──────────────────────────────────────────────┐
+<h3><b>Distribución temporal</b></h3>
 
-│   Loader Optimizado (Streaming + Chunking)   │
+Se implementa una distribución no uniforme para simular comportamiento real:
 
-└─────────────────────────────┬────────────────┘
+<pre>
+pesos = np.sin(np.linspace(0, 3*np.pi, len(fechas))) + 1.5
+</pre>
 
-&#x20;                             │
+Esto permite generar:
 
-&#x20;                             ▼
+* picos de actividad
+* ciclos financieros
+* comportamiento periódico
 
-┌──────────────────────────────────────────────┐
+<hr style="border: 1px solid #eee;">
 
-│        Azure SQL Database (Serving)          │
+<h3><b>Inyección de anomalías</b></h3>
 
-└──────────────────────────────────────────────┘
+Se introducen errores controlados de forma intencional:
 
-```
+* duplicados en movimientos
+* valores negativos
+* fechas inválidas
 
+<br>
 
+<b>Objetivo:</b>
 
-\---
+* validar reglas de negocio
+* probar procesos de limpieza
+* simular escenarios de fraude
 
+<hr style="border: 1px solid #eee;">
 
+<h3><b>Simulación de datos incompletos</b></h3>
 
-\# 1. Generación de Datos Dummy
+<pre>
+apply_nulls(df, pct=0.05)
+</pre>
 
+* aproximadamente 5% de valores nulos
+* exclusión de identificadores y campos críticos
 
+<br>
 
-\## Objetivo
+Esto permite probar:
 
+* imputación
+* validaciones
+* calidad de datos
 
+<hr style="border: 1px solid #eee;">
 
-Simular un ecosistema bancario completo con datos:
+<h3><b>Integridad referencial</b></h3>
 
+<pre>
+validar_fk(df, col, ref_df, ref_col)
+</pre>
 
+Se valida consistencia entre entidades antes de la carga, evitando propagación de errores.
 
-\- Realistas  
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-\- Escalables  
+<h2><b>Persistencia</b></h2>
 
-\- Con errores controlados  
+Los datasets se almacenan en múltiples formatos:
 
-\- Útiles para testing de pipelines  
+* CSV
+* Parquet
+* JSON
 
+<br>
 
+Esto permite flexibilidad para distintos tipos de consumo y pruebas.
 
-\---
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Carga de Datos</b></h2>
 
+<h3><b>Objetivo</b></h3>
 
-\## Volumen de Datos
+Implementar un proceso de carga eficiente, escalable y seguro hacia Azure SQL Database.
 
+<hr style="border: 1px solid #eee;">
 
+<h3><b>Seguridad</b></h3>
 
-| Tabla | Registros |
+<pre>
+password = client.get_secret("sql-password").value
+</pre>
 
-|------|--------|
+Se utiliza Azure Key Vault para:
 
-| TB\_CLIENTES\_CORE | 10,000 |
+* evitar hardcoding
+* permitir rotación de credenciales
+* cumplir estándares de seguridad
 
-| TB\_PRODUCTOS\_CAT | 50 |
+<hr style="border: 1px solid #eee;">
 
-| TB\_SUCURSALES\_RED | 200 |
+<h3><b>Optimización de conexión</b></h3>
 
-| TB\_MOV\_FINANCIEROS | 500,000 |
+<pre>
+fast_executemany=True
+</pre>
 
-| TB\_OBLIGACIONES | 30,000 |
+Esta configuración reduce significativamente los tiempos de inserción masiva.
 
-| TB\_COMISIONES\_LOG | 80,000 |
+<hr style="border: 1px solid #eee;">
 
+<h3><b>Limpieza previa</b></h3>
 
+Se aplican transformaciones antes de la carga:
 
-\---
+* columnas en minúscula
+* estandarización de fechas
+* conversión de nulos a NULL
 
+<br>
 
+Esto garantiza compatibilidad con el motor SQL.
 
-\## Modelado de Datos
+<hr style="border: 1px solid #eee;">
 
+<h3><b>Estrategia de carga</b></h3>
 
+Se utiliza lectura en streaming:
 
-\### Clientes
+<pre>
+pd.read_csv(path, chunksize=chunksize)
+</pre>
 
-\- Segmentación (BASICO, ESTANDAR, PREMIUM, ELITE)
+<br>
 
-\- Score crediticio (simulación tipo buró)
+<b>Ventajas:</b>
 
-\- Canal de adquisición
+* menor uso de memoria
+* escalabilidad
+* estabilidad en grandes volúmenes
 
+<hr style="border: 1px solid #eee;">
 
+<h3><b>Inserción por bloques</b></h3>
 
-\### Productos
+Cada chunk es:
 
-\- Tipos: Crédito, Ahorro, Transaccional
+* procesado
+* limpiado
+* insertado
+* monitoreado
 
-\- Tasas de interés y condiciones
+<br>
 
+Esto permite control granular del proceso.
 
+<hr style="border: 1px solid #eee;">
 
-\### Sucursales
+<h3><b>Configuración de chunk size</b></h3>
 
-\- Ubicación geográfica (latitud/longitud)
-
-\- Tipos de punto físico
-
-
-
-\### Movimientos Financieros
-
-\- Distribución realista (lognormal)
-
-\- Diferentes canales (APP, WEB, CAJERO)
-
-\- Identificador de dispositivo
-
-
-
-\### Obligaciones
-
-\- Simulación de créditos reales
-
-\- Mora, cuotas, riesgo
-
-
-
-\### Comisiones
-
-\- Tipos de cobro
-
-\- Estado de pago
-
-
-
-\---
-
-
-
-\## Generación Temporal Inteligente
-
-
-
-Se usa una distribución no uniforme:
-
-
-
-```python
-
-pesos = np.sin(np.linspace(0, 3\*np.pi, len(fechas))) + 1.5
-
-```
-
-
-
-Simula comportamiento real:
-
-\- picos de actividad
-
-\- ciclos financieros (quincenas, cierres)
-
-
-
-\---
-
-
-
-\## Inyección de Anomalías
-
-
-
-Se generan errores intencionales para pruebas de calidad:
-
-
-
-1\. Duplicados en TB\_MOV\_FINANCIEROS  
-
-2\. Valores negativos en vr\_mov  
-
-3\. Fechas futuras inválidas  
-
-
-
-Esto permite validar:
-
-\- reglas de negocio
-
-\- detección de fraude
-
-\- limpieza en Silver Layer
-
-
-
-\---
-
-
-
-\## Simulación de Datos Sucios
-
-
-
-```python
-
-apply\_nulls(df, pct=0.05)
-
-```
-
-
-
-\- \~5% de valores nulos
-
-\- Excluye:
-
-&#x20; - IDs
-
-&#x20; - fechas
-
-&#x20; - booleanos
-
-
-
-Ideal para:
-
-\- testing de imputación
-
-\- reglas de calidad
-
-
-
-\---
-
-
-
-\## Validación de Integridad Referencial
-
-
-
-```python
-
-validar\_fk(df, col, ref\_df, ref\_col)
-
-```
-
-
-
-Ejemplos:
-
-\- `id\_cli` en movimientos
-
-\- `cod\_prod` en obligaciones
-
-
-
-Detecta inconsistencias antes de carga
-
-
-
-\---
-
-
-
-\## Persistencia
-
-
-
-Cada dataset se guarda en:
-
-
-
-/output  
-
-├── CSV  
-
-├── Parquet  
-
-└── JSON  
-
-
-
-Flexibilidad para distintos pipelines
-
-
-
-\---
-
-
-
-\# 2. Carga de Datos a Azure SQL
-
-
-
-\## Objetivo
-
-
-
-Cargar datos de forma:
-
-
-
-\- Eficiente  
-
-\- Escalable  
-
-\- Segura  
-
-
-
-\---
-
-
-
-\## Seguridad — Azure Key Vault
-
-
-
-```python
-
-password = client.get\_secret("sql-password").value
-
-```
-
-
-
-Beneficios:
-
-
-
-\- No hardcoding
-
-\- Rotación de credenciales
-
-\- Seguridad enterprise
-
-
-
-\---
-
-
-
-\## Conexión a SQL Server
-
-
-
-```python
-
-engine = sa.create\_engine(
-
-&#x20;   connection\_string,
-
-&#x20;   fast\_executemany=True
-
-)
-
-```
-
-
-
-\### Optimización clave:
-
-
-
-\- `fast\_executemany=True`
-
-
-
-Reduce drásticamente el tiempo de carga
-
-
-
-\---
-
-
-
-\## Limpieza Pre-Carga
-
-
-
-```python
-
-def clean\_df(df):
-
-```
-
-
-
-Transformaciones:
-
-
-
-\- Columnas → lowercase  
-
-\- Fechas → formato estándar  
-
-\- NaN → NULL  
-
-
-
-Garantiza compatibilidad con SQL Server
-
-
-
-\---
-
-
-
-\## Estrategia de Carga — Streaming
-
-
-
-```python
-
-pd.read\_csv(path, chunksize=chunksize)
-
-```
-
-
-
-Ventajas:
-
-
-
-\- No consume toda la memoria  
-
-\- Escalable a millones de registros  
-
-\- Evita fallos por tamaño  
-
-
-
-\---
-
-
-
-\## Inserción por Bloques
-
-
-
-```python
-
-chunk.to\_sql(..., if\_exists="append")
-
-```
-
-
-
-Cada chunk:
-
-
-
-\- se limpia  
-
-\- se inserta  
-
-\- se monitorea  
-
-
-
-\---
-
-
-
-\## Monitoreo
-
-
-
-TB\_MOV\_FINANCIEROS: 20000 registros cargados  
-
-COMPLETADA en X segundos  
-
-
-
-Permite seguimiento en tiempo real
-
-
-
-\---
-
-
-
-\## Estrategia de Chunk Size
-
-
-
-| Tipo de tabla | Tamaño |
-
-|--------------|--------|
-
+| Tipo     | Tamaño  |
+| -------- | ------- |
 | Pequeñas | 1K – 2K |
+| Medianas | 10K     |
+| Grandes  | 20K     |
 
-| Medianas | 10K |
+<br>
 
-| Grandes | 20K |
+Balancea:
 
+* memoria
+* velocidad
+* estabilidad
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-Balance entre:
+<h2><b>Buenas prácticas implementadas</b></h2>
 
-\- memoria  
+<b>Data Engineering</b>
 
-\- velocidad  
+* separación de responsabilidades
+* generación realista de datos
+* control de calidad desde origen
 
-\- estabilidad  
+<b>Performance</b>
 
+* chunking
+* optimización de inserción
+* ajuste por volumen
 
+<b>Seguridad</b>
 
-\---
+* uso de Key Vault
+* eliminación de credenciales en código
 
+<b>Data Quality</b>
 
+* simulación de errores
+* validación de integridad
+* datos incompletos controlados
 
-\## Ejecución
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Decisiones técnicas</b></h2>
 
-
-```bash
-
-python load\_data.py
-
-```
-
-
-
-Orden:
-
-
-
-1\. Clientes  
-
-2\. Productos  
-
-3\. Sucursales  
-
-4\. Movimientos  
-
-5\. Obligaciones  
-
-6\. Comisiones  
-
-
-
-\---
-
-
-
-\# Buenas Prácticas Implementadas
-
-
-
-\## Data Engineering
-
-
-
-\- Separación de responsabilidades
-
-\- Datos realistas
-
-\- Control de calidad desde origen
-
-
-
-\## Performance
-
-
-
-\- Chunking
-
-\- fast\_executemany
-
-\- Ajuste por volumen
-
-
-
-\## Seguridad
-
-
-
-\- Azure Key Vault
-
-\- Sin credenciales expuestas
-
-
-
-\## Data Quality
-
-
-
-\- Nulos simulados
-
-\- anomalías controladas
-
-\- validación de integridad
-
-
-
-\---
-
-
-
-\# Decisiones Técnicas
-
-
-
-| Decisión | Justificación |
-
-|--------|-------------|
-
-| Faker | Realismo en datos |
-
-| NumPy | Control estadístico |
-
+| Decisión               | Justificación         |
+| ---------------------- | --------------------- |
+| Faker                  | Generación realista   |
+| NumPy                  | Control estadístico   |
 | Distribución lognormal | Simulación financiera |
+| Chunking               | Escalabilidad         |
+| Key Vault              | Seguridad             |
+| Anomalías              | Testing de calidad    |
+| Multi-formato          | Flexibilidad          |
 
-| Chunking | Escalabilidad |
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-| Key Vault | Seguridad |
+<h2><b>Conclusión</b></h2>
 
-| Anomalías | Testing de calidad |
+Este módulo no solo genera datos, sino que construye un entorno controlado que replica condiciones reales de un sistema financiero.
 
-| Multi-formato | Flexibilidad |
+Permite:
 
+* simular escenarios complejos
+* validar pipelines de datos
+* probar calidad y consistencia
+* evaluar rendimiento en cargas masivas
 
+<br>
 
-\---
+En conjunto, establece una base sólida para el desarrollo de soluciones analíticas y de ingeniería de datos en entornos productivos.
 
-
-
-
-
-
-
-\---
-
-\# Conclusión
-
-
-
-Este proyecto:
-
-
-
-\* Simula un sistema bancario real  
-
-\* Introduce problemas reales de datos  
-
-\* Implementa carga eficiente y segura  
-
-\* Prepara el terreno para analítica avanzada  
 
