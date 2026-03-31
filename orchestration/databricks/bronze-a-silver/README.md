@@ -1,579 +1,331 @@
-\# Capa Silver en Databricks — Diseño, Gobierno y Optimización
+<h1 align="center">Capa Silver en Databricks</h1>
+<p align="center"><b>Diseño, Gobierno y Optimización — FinBank Data Platform</b></p>
 
+<br>
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-\---
+<h2><b>Descripción</b></h2>
 
+La capa Silver representa el punto donde los datos dejan de ser información cruda y pasan a convertirse en activos confiables dentro de la plataforma.
 
+En esta etapa no solo se realizan transformaciones, sino que se establece un control riguroso sobre calidad, estructura, gobierno y rendimiento.
 
-\## Descripcion
+<br>
 
+<b>Objetivo del diseño:</b>
 
+* consistencia técnica
+* reutilización para múltiples fuentes
+* gobierno bajo estándares enterprise
+* eficiencia en lectura y escritura
+* capacidad de escalar sin fricción
 
-La capa Silver representa el punto donde los datos dejan de ser simplemente información cruda y pasan a convertirse en activos confiables dentro de la plataforma. En esta etapa no solo realizo transformaciones, sino que establezco un control riguroso sobre calidad, estructura, gobierno y rendimiento.
+<br>
 
+Más que una transformación, esta capa actúa como un filtro crítico que determina qué datos pueden avanzar en la arquitectura.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-El objetivo de este diseño fue construir una capa que sea:
+<h2><b>Gobierno de datos — Unity Catalog</b></h2>
 
+La implementación se soporta sobre Unity Catalog, permitiendo centralizar el control de accesos, la organización y la trazabilidad de los datos.
 
+<br>
 
-\- consistente en términos técnicos  
+![catalogo silver](https://github.com/jechavarria9505/dataknow_finbank/blob/691bec6b3e7c781068ffc7e1fbd246d6e3b50561/docs/images/Databricks/catalogo_silver.jpeg)
 
-\- reutilizable para múltiples fuentes  
+<br>
 
-\- gobernada bajo estándares enterprise  
+<h3><b>Estructura de schemas</b></h3>
 
-\- eficiente en lectura y escritura  
+* silver_dev.sql_finbank → datos curados
+* silver_dev.errores_tables → registros inválidos
 
-\- preparada para escalar sin fricción  
+<br>
 
+Ambos schemas fueron definidos como <b>managed locations</b>.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-Más que una transformación, esta capa actúa como un filtro crítico que determina qué datos son aptos para avanzar en la arquitectura.
+<h2><b>Decisión técnica: Managed vs External</b></h2>
 
+El diseño diferencia claramente entre gestión a nivel de schema y a nivel de tabla.
 
+<br>
 
-\---
+<h3><b>Managed schemas</b></h3>
 
+Se utilizan porque permiten:
 
+* delegar la administración del almacenamiento a Unity Catalog
+* garantizar consistencia en la organización
+* simplificar la operación
+* centralizar el gobierno del dominio
 
-\## Gobierno de datos con Unity Catalog
+<br>
 
+<h3><b>External tables (LOCATION)</b></h3>
 
+A nivel de tabla se define LOCATION explícito para:
 
-La implementación se soporta sobre Unity Catalog, lo cual me permite centralizar el gobierno de los datos y mantener control sobre accesos, estructuras y trazabilidad.
+* controlar rutas físicas en el Data Lake
+* mantener alineación con arquitectura Medallion
+* facilitar integración con ADF
+* asegurar trazabilidad del almacenamiento
 
+<br>
 
+<h3><b>Conclusión</b></h3>
 
-<p align="center">
+Se adopta un enfoque híbrido que combina:
 
-&#x20; <img src="docs/images/databricks/catalogo\_silver.jpeg" width="800"/>
+* gobierno centralizado
+* control físico del almacenamiento
 
-</p>
+Esto permite equilibrar control y flexibilidad.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-
-\### Estructura de schemas
-
-
-
-\- silver\_dev.sql\_finbank → almacenamiento de datos curados  
-
-\- silver\_dev.errores\_tables → almacenamiento de registros inválidos  
-
-
-
-Ambos schemas fueron definidos como managed locations.
-
-
-
-\---
-
-
-
-\## Decisión técnica: Managed vs External
-
-
-
-A nivel de diseño diferencié claramente el uso de managed schemas y external tables.
-
-
-
-\### Managed schemas
-
-
-
-Definí los schemas como managed porque:
-
-
-
-\- delego la administración del almacenamiento a Unity Catalog  
-
-\- garantizo consistencia en la organización  
-
-\- reduzco la complejidad operativa  
-
-\- centralizo el gobierno del dominio Silver  
-
-
-
-\### External tables (LOCATION)
-
-
-
-A nivel de tabla utilicé LOCATION explícito porque necesitaba:
-
-
-
-\- control directo sobre rutas físicas en el Data Lake  
-
-\- alineación con la estructura Medallion  
-
-\- trazabilidad sobre almacenamiento  
-
-\- integración con otros componentes como ADF  
-
-
-
-\### Conclusión de la decisión
-
-
-
-Adopté un enfoque híbrido por que me da:
-
-
-
-\- gobierno centralizado en el schema  
-
-\- control físico a nivel de tabla  
-
-
-
-Esto me permite equilibrar gobernanza con flexibilidad operativa.
-
-
-
-\---
-
-
-
-\## Diseño del procesamiento
-
-
+<h2><b>Diseño del procesamiento</b></h2>
 
 El notebook está completamente parametrizado:
 
+* table_name
+* bronze_path
+* load_type
 
+<br>
 
-\- table\_name  
+Esto permite procesar múltiples tablas con un solo flujo, eliminando duplicación de lógica.
 
-\- bronze\_path  
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-\- load\_type  
+<h2><b>Configuración basada en metadata</b></h2>
 
+Las reglas no están hardcodeadas, sino definidas en configuración por tabla:
 
+* claves primarias
+* columnas críticas
+* validaciones
+* reglas técnicas
+* relaciones de integridad
+* columnas sensibles
+* tipos de datos
 
-Esto elimina la necesidad de duplicar lógica y permite procesar múltiples tablas con un solo flujo.
+<br>
 
+Esta decisión desacopla la lógica del código y facilita la escalabilidad.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-\---
+<h2><b>Flujo de procesamiento</b></h2>
 
+<h3><b>Lectura</b></h3>
 
+* FULL → lectura completa
+* INCREMENTAL → lectura por particiones
 
-\## Configuración basada en metadata
+<br>
 
+Optimiza recursos y reduce volumen procesado.
 
+<hr style="border: 1px solid #eee;">
 
-En lugar de codificar reglas directamente, implementé una capa de configuración por tabla donde defino:
+<h3><b>Control temprano</b></h3>
 
+Si no hay datos, el proceso se detiene.
 
+<br>
 
-\- claves primarias  
+Evita consumo innecesario de cómputo.
 
-\- columnas críticas  
+<hr style="border: 1px solid #eee;">
 
-\- validaciones  
+<h3><b>Normalización temporal</b></h3>
 
-\- reglas técnicas  
+Se unifica el concepto de fecha de proceso independientemente del origen.
 
-\- relaciones de integridad  
+<hr style="border: 1px solid #eee;">
 
-\- columnas sensibles  
+<h3><b>Cacheo</b></h3>
 
-\- tipos de datos  
+Se aplica cache para evitar recomputaciones durante validaciones y transformaciones.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Validación de calidad</b></h2>
 
-Esta decisión desacopla completamente la lógica del código y facilita la escalabilidad.
+<h3><b>Nulos críticos</b></h3>
 
+Los registros inválidos no se eliminan, se separan y almacenan en tablas de errores.
 
+<br>
 
-\---
+<b>Justificación:</b>
 
+En el contexto financiero, incluso los datos incorrectos pueden ser relevantes para:
 
+* auditoría
+* análisis de calidad
+* investigaciones
 
-\## Flujo de procesamiento
+<br>
 
+Los errores se preservan sin contaminar los datos curados.
 
+<hr style="border: 1px solid #eee;">
 
-\### Lectura
-
-
-
-La estrategia de lectura depende del tipo de carga:
-
-
-
-\- FULL → lectura completa  
-
-\- INCREMENTAL → lectura por particiones  
-
-
-
-Esto optimiza el uso de recursos y reduce el volumen procesado.
-
-
-
-\---
-
-
-
-\### Control temprano
-
-
-
-Antes de procesar, valido si existen datos. Si no hay información, detengo la ejecución.
-
-
-
-Esto evita consumo innecesario de cómputo.
-
-
-
-\---
-
-
-
-\### Normalización temporal
-
-
-
-Estandarizo el concepto de fecha de proceso independientemente del origen.
-
-
-
-Esto garantiza consistencia en el modelo temporal.
-
-
-
-\---
-
-
-
-\### Cacheo
-
-
-
-Aplico cache sobre el dataframe para evitar recomputaciones durante validaciones y transformaciones.
-
-
-
-\---
-
-
-
-\## Validación de calidad
-
-
-
-\---
-
-
-
-\### Nulos críticos
-
-
-
-Los registros con valores nulos en columnas críticas no se eliminan.
-
-
-
-En su lugar:
-
-
-
-\- se separan del dataset principal  
-
-\- se almacenan en una tabla de errores  
-
-
-
-\### Justificación
-
-
-
-Decidí no descartar estos datos porque en el contexto bancario incluso la información inválida puede ser relevante para:
-
-
-
-\- auditoría  
-
-\- análisis de calidad  
-
-\- investigaciones posteriores  
-
-
-
-La tabla de errores permite preservar esta información sin contaminar los datos curados.
-
-
-
-\---
-
-
-
-\### Validaciones de dominio
-
-
+<h3><b>Validaciones de dominio</b></h3>
 
 Se controlan valores permitidos para evitar inconsistencias semánticas.
 
+<hr style="border: 1px solid #eee;">
 
+<h3><b>Integridad referencial</b></h3>
 
-\---
+Se validan relaciones entre tablas mediante joins.
 
-
-
-\### Integridad referencial
-
-
-
-Valido relaciones entre tablas mediante joins con datasets de referencia.
-
-
+<br>
 
 Los registros inválidos se separan como errores.
 
+<hr style="border: 1px solid #eee;">
 
+<h3><b>Reglas técnicas</b></h3>
 
-Esta decisión evita propagar inconsistencias hacia capas superiores.
+Se aplican controles como validación de valores negativos en campos financieros.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Manejo de duplicados</b></h2>
 
-\---
+Se utilizan funciones de ventana para conservar el registro más reciente de forma determinística.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Enmascaramiento</b></h2>
 
-\### Reglas técnicas
+Se implementa masking en:
 
+* nombre
+* apellido
+* documento
+* cuenta
 
+<br>
 
-Se aplican controles básicos como validación de valores negativos en campos financieros.
+Protege datos sensibles manteniendo trazabilidad parcial.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Feature engineering</b></h2>
 
-\---
+Se incorporan métricas como:
 
+* promedio móvil
+* desviación estándar
+* z-score
 
+<br>
 
-\## Manejo de duplicados
+Permiten detectar comportamientos atípicos desde etapas tempranas.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-
-Utilizo funciones de ventana para identificar duplicados y conservar el registro más reciente.
-
-
-
-Esta estrategia es determinística y permite mantener control sobre la versión del dato.
-
-
-
-\---
-
-
-
-\## Enmascaramiento
-
-
-
-Se implementa enmascaramiento dinámico en nombre, apellido, numero de documento y numero de cuenta para proteger datos sensibles sin perder completamente su trazabilidad.
-
-
-
-\---
-
-
-
-\## Feature engineering
-
-
-
-En datasets financieros incorporo métricas como:
-
-
-
-\- promedio móvil  
-
-\- desviación estándar  
-
-\- z-score  
-
-
-
-Esto permite identificar comportamientos atípicos desde etapas tempranas.
-
-
-
-\---
-
-
-
-\## Métricas de calidad
-
-
+<h2><b>Métricas de calidad</b></h2>
 
 Se calculan indicadores como:
 
+* total de registros
+* válidos
+* inválidos
+* porcentaje de error
 
-
-\- total de registros  
-
-\- registros válidos  
-
-\- registros inválidos  
-
-\- porcentaje de error  
-
-
+<br>
 
 Esto convierte el proceso en un sistema observable.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-
-\---
-
-
-
-\## Persistencia en Delta Lake
-
-
+<h2><b>Persistencia en Delta Lake</b></h2>
 
 Se utiliza Delta Lake para garantizar:
 
+* consistencia ACID
+* cargas incrementales
+* evolución de esquema
 
+<br>
 
-\- consistencia ACID  
+<b>Estrategia:</b>
 
-\- manejo de cargas incrementales  
+* catálogos → overwrite
+* transaccionales → merge
 
-\- evolución de esquema  
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Manejo de errores</b></h2>
 
+Los errores se almacenan en un schema independiente.
 
-\### Estrategia
-
-
-
-\- catálogos → overwrite  
-
-\- transaccionales → merge incremental  
-
-
-
-\---
-
-
-
-\## Manejo de errores
-
-
-
-Los errores se almacenan en un schema independiente dentro de Unity Catalog.
-
-
+<br>
 
 Esto permite:
 
+* auditoría
+* análisis
+* debugging
+* trazabilidad
 
+<br>
 
-\- auditoría estructurada  
+Los errores se gestionan como información, no como desecho.
 
-\- análisis posterior  
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-\- debugging  
+<h2><b>Optimización — Liquid Clustering</b></h2>
 
-\- preservación de información  
+Se implementa optimización basada en:
 
-
-
-Los errores se tratan como un activo, no como desecho.
-
-
-
-\---
-
-
-
-\## Optimización con Liquid Clustering
-
-
-
-\---
-
-
-
-En lugar de particiones, se implementa una estrategia moderna basada en optimización dinámica:
-
-
-
+<pre>
 OPTIMIZE tabla
+ZORDER BY (columnas_clave)
+</pre>
 
-ZORDER BY (columnas\_clave)
+<br>
 
+<b>Beneficios:</b>
 
+* reducción de archivos pequeños
+* mejor localización de datos
+* optimización de consultas
+* mayor flexibilidad que particiones tradicionales
 
-Esta estrategia permite:
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Integración</b></h2>
 
+El notebook es ejecutado desde Azure Data Factory, lo que permite un flujo completamente orquestado.
 
-* reducir la cantidad de archivos pequeños
-* mejorar la localización de datos en disco
-* optimizar consultas filtradas por columnas clave
-* evitar la rigidez del particionamiento tradicional
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Conclusión</b></h2>
 
+La capa Silver es el punto donde se define la calidad, el gobierno y el rendimiento de la plataforma.
 
-La optimización se ejecuta únicamente sobre tablas de alto volumen y bajo una lógica controlada, evitando costos innecesarios.
+<br>
 
-&#x20;
+<b>Este diseño permite construir una solución:</b>
 
+* escalable
+* auditable
+* mantenible
+* alineada con prácticas reales de producción
 
+<br>
 
-\---
-
-
-
-\## Integración
-
-
-
-El notebook es ejecutado desde Azure Data Factory, que provee los parámetros necesarios.
-
-
-
-Esto permite un flujo completamente orquestado y desacoplado.
-
-
-
-\---
-
-
-
-\## Conclusión
-
-
-
-La capa Silver no es únicamente un paso intermedio, sino el componente donde se define la calidad, el gobierno y el rendimiento de la plataforma.
-
-
-
-Las decisiones tomadas permiten construir una solución:
-
-
-
-\- escalable  
-
-\- auditable  
-
-\- mantenible  
-
-\- alineada con prácticas reales de producción  
-
-
-
-Este diseño asegura que las capas posteriores trabajen sobre una base sólida y confiable.
+Garantiza que las capas posteriores trabajen sobre una base sólida y confiable.
 
 
 
