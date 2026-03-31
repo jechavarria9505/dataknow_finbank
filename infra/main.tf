@@ -53,5 +53,5 @@ module "databricks" {
   source              = "./modules/databricks"
   databricks_name     = "adb-finbankdata"
   resource_group_name = azurerm_resource_group.rg.name
-  location            = "centralus"
+  location            = "var.location"
 }
