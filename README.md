@@ -1,16 +1,16 @@
-\# End-to-End Data Platform — FinBank  
+# End-to-End Data Platform — FinBank  
+
+---
+
+## Escenario A: Banca y Servicios Financieros
 
 
 
-\## Escenario A: Banca y Servicios Financieros
+<hr style="border: 1px solid #ccc; width: 100%;">
 
 
 
-\---
-
-
-
-\## Contexto
+## Contexto
 
 
 
@@ -26,25 +26,25 @@ El resultado es una implementación end-to-end que integra:
 
 
 
-\- generación de datos sintéticos  
+- generación de datos sintéticos  
 
-\- infraestructura como código  
+- infraestructura como código  
 
-\- orquestación de pipelines  
+- orquestación de pipelines  
 
-\- procesamiento distribuido  
+- procesamiento distribuido  
 
-\- gobierno de datos  
+- gobierno de datos  
 
-\- monitoreo y observabilidad  
-
-
-
-\---
+- monitoreo y observabilidad  
 
 
 
-\## ¿Por qué elegí el escenario financiero?
+<hr style="border: 1px solid #ccc; width: 100%;">
+
+
+
+## ¿Por qué elegí el escenario financiero?
 
 
 
@@ -60,15 +60,15 @@ El sector financiero introduce condiciones que obligan a elevar el nivel del dis
 
 
 
-\- los datos son altamente sensibles  
+- los datos son altamente sensibles  
 
-\- los errores tienen impacto directo en el negocio  
+- los errores tienen impacto directo en el negocio  
 
-\- la trazabilidad no es opcional  
+- la trazabilidad no es opcional  
 
-\- la calidad de datos es crítica  
+- la calidad de datos es crítica  
 
-\- los patrones de uso son complejos y exigentes  
+- los patrones de uso son complejos y exigentes  
 
 
 
@@ -76,15 +76,15 @@ Trabajar sobre este escenario me permitió enfrentar problemas reales como:
 
 
 
-\- inconsistencias entre fuentes  
+- inconsistencias entre fuentes  
 
-\- registros incompletos  
+- registros incompletos  
 
-\- duplicados  
+- duplicados  
 
-\- necesidad de auditoría  
+- necesidad de auditoría  
 
-\- detección de comportamientos atípicos
+- detección de comportamientos atípicos
 
 
 
@@ -92,11 +92,11 @@ En lugar de evitar la complejidad, decidí trabajar sobre ella.
 
 
 
-\---
+<hr style="border: 1px solid #ccc; width: 100%;">
 
 
 
-\## Visión de la solución
+## Visión de la solución
 
 
 
@@ -112,11 +112,11 @@ Este enfoque permite desacoplar responsabilidades y construir un sistema escalab
 
 
 
-\---
+<hr style="border: 1px solid #ccc; width: 100%;">
 
 
 
-\## Arquitectura general
+## Arquitectura general
 
 
 
@@ -140,11 +140,11 @@ Cada componente fue seleccionado no solo por disponibilidad, sino por su rol den
 
 
 
-\---
+<hr style="border: 1px solid #ccc; width: 100%;">
 
 
 
-\## Generación de datos
+## Generación de datos
 
 
 
@@ -167,11 +167,11 @@ Esto permitió validar que el pipeline no solo funciona en condiciones ideales, 
 
 
 
-\---
+<hr style="border: 1px solid #ccc; width: 100%;">
 
 
 
-\## Infraestructura como código
+## Infraestructura como código
 
 
 
@@ -194,15 +194,15 @@ Se incluyeron componentes clave como almacenamiento, procesamiento, orquestació
 
 
 
-\---
+<hr style="border: 1px solid #ccc; width: 100%;">
 
 
 
-\## Pipeline de datos
+## Pipeline de datos
 
 
 
-\### Bronze
+### Bronze
 
 
 
@@ -224,11 +224,11 @@ No se realizan transformaciones complejas en esta capa.
 
 
 
-\---
+<hr style="border: 1px solid #ccc; width: 100%;">
 
 
 
-\### Silver - Control de calidad
+### Silver - Control de calidad
 
 
 
@@ -254,7 +254,7 @@ Aquí se implementan:
 
 
 
-\### Decisión clave:
+### Decisión clave:
 
 
 
@@ -283,11 +283,11 @@ Los errores no se descartan, se gestionan.
 
 
 
-\---
+<hr style="border: 1px solid #ccc; width: 100%;">
 
 
 
-\### Gold - Capa analítica
+### Gold - Capa analítica
 
 
 
@@ -320,11 +320,11 @@ Aquí el dato deja de ser técnico y se convierte en información útil para dec
 
 
 
-\---
+<hr style="border: 1px solid #ccc; width: 100%;">
 
 
 
-\## Orquestación
+## Orquestación
 
 
 
@@ -347,11 +347,11 @@ Esto garantiza que el flujo sea predecible y controlado.
 
 
 
-\---
+<hr style="border: 1px solid #ccc; width: 100%;">
 
 
 
-\## Monitoreo y observabilidad
+## Monitoreo y observabilidad
 
 
 
@@ -370,11 +370,11 @@ El objetivo fue evitar un sistema reactivo y construir uno observable.
 
 
 
-\---
+<hr style="border: 1px solid #ccc; width: 100%;">
 
 
 
-\## Gobierno y seguridad
+## Gobierno y seguridad
 
 
 
@@ -404,11 +404,11 @@ El gobierno no es un añadido, es parte del diseño.
 
 
 
-\---
+<hr style="border: 1px solid #ccc; width: 100%;">
 
 
 
-\## Conclusión
+## Conclusión
 
 
 
