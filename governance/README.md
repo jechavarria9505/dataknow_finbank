@@ -1,318 +1,238 @@
-\# Data Platform Governance \& Monitoring Implementation
+<h1 align="center">Data Platform Governance & Monitoring</h1>
+<p align="center"><b>Seguridad, Control de Acceso y Observabilidad — FinBank</b></p>
 
+<br>
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-\## 1. Descripcion
+<h2><b>Descripción</b></h2>
 
+Este documento describe la implementación de capacidades de gobernanza, control de acceso, monitoreo y alertamiento dentro de la plataforma de datos en Azure.
 
+El diseño no se limita a asignar permisos, sino a establecer un modelo de acceso seguro, auditable y alineado con prácticas reales de producción.
 
-Este documento describe la implementación de capacidades de gobernanza,
+<br>
 
-control de acceso, monitoreo y alertamiento dentro de una plataforma de
+<b>El alcance incluye:</b>
 
-datos en Azure.
+* definición de roles y grupos de acceso
+* aplicación de RBAC en servicios Azure
+* control de acceso a nivel de datos con Unity Catalog
+* monitoreo centralizado de ejecución
+* automatización de alertas y notificaciones
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Recursos implementados</b></h2>
 
-El alcance se centra en: - Definición de roles y grupos de acceso -
+La solución integra múltiples servicios que trabajan de forma coordinada:
 
-Aplicación de RBAC - Implementación de controles en Unity Catalog -
+* Azure Data Factory
+* Azure Data Lake Storage Gen2
+* Azure Databricks con Unity Catalog
+* Log Analytics Workspace
+* Azure Monitor
+* Logic App
+* Microsoft Entra ID
 
-Configuración de monitoreo centralizado - Automatización de alertas y
+<br>
 
-notificaciones
+Cada componente cumple un rol específico dentro del modelo de gobierno y observabilidad.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Grupos de seguridad</b></h2>
 
-\---
+Se definieron grupos alineados a responsabilidades dentro del flujo de datos:
 
+* <b>grp-data-engineers</b>
+* <b>grp-analysts</b>
+* <b>grp-admins</b>
 
+<br>
 
-\## 2. Recursos Implementados
+![creacion de grupos](https://github.com/jechavarria9505/dataknow_finbank/blob/bc72002486b90878830234af2345506e9bcf4423/docs/images/Governance/group_creation.jpeg)
 
+<br>
 
+Este enfoque permite desacoplar identidades de permisos y simplificar la administración de accesos.
 
-\-   Azure Data Factory
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-\-   Azure Data Lake Storage Gen2
+<h2><b>Control de acceso</b></h2>
 
-\-   Azure Databricks + Unity Catalog
+<h3><b>Storage — ADLS Gen2</b></h3>
 
-\-   Log Analytics Workspace
+* Data Engineers → Storage Blob Data Contributor
+* Analysts → acceso restringido a capa Gold (lectura)
+* Admins → Owner
 
-\-   Azure Monitor
+<br>
 
-\-   Logic App
+![permisos analistas](https://github.com/jechavarria9505/dataknow_finbank/blob/bc72002486b90878830234af2345506e9bcf4423/docs/images/Governance/analyst_permissions.jpeg)
 
-\-   Microsoft Entra ID
+![permisos admins e ing](https://github.com/jechavarria9505/dataknow_finbank/blob/bc72002486b90878830234af2345506e9bcf4423/docs/images/Governance/engineer_admins_permissions.jpeg)>
 
+<br>
 
+Se aplica segmentación por capas para evitar exposición innecesaria de datos.
 
-\---
+<hr style="border: 1px solid #eee;">
 
+<h3><b>Azure Data Factory</b></h3>
 
+* Data Engineers → Data Factory Contributor
+* Analysts → sin acceso
+* Admins → Owner
 
-\## 3. Grupos de Seguridad
+<br>
 
+![permisos adf](https://github.com/jechavarria9505/dataknow_finbank/blob/bc72002486b90878830234af2345506e9bcf4423/docs/images/Governance/permissions_adf_group.jpeg)
 
+<br>
 
-Se crearon los siguientes grupos:
+Esto asegura que únicamente los perfiles operativos puedan modificar pipelines.
 
+<hr style="border: 1px solid #eee;">
 
+<h3><b>Log Analytics</b></h3>
 
-\-   grp-data-engineers
+* Data Engineers → Contributor
+* Analysts → Reader
+* Admins → Owner
 
-\-   grp-analysts
+<br>
 
-\-   grp-admins
+Permite acceso controlado a logs y monitoreo sin comprometer seguridad.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Gobierno de datos — Unity Catalog</b></h2>
 
-<p align="center">
+Se definió una estructura por capas:
 
-&#x20; <img src="docs/images/Governance/group\_creation.jpeg" width="800"/>
+* bronze
+* silver
+* gold
 
-</p>
+<br>
 
+<b>Permisos aplicados:</b>
 
+* Data Engineers → ALL PRIVILEGES
+* Analysts → SELECT únicamente en capa Gold
+* Admins → ALL PRIVILEGES
 
+<br>
 
 
-\---
+![permisos silver](https://github.com/jechavarria9505/dataknow_finbank/blob/bc72002486b90878830234af2345506e9bcf4423/docs/images/Governance/permissions_UC_silver_group.jpeg)
 
+![permisos gold](https://github.com/jechavarria9505/dataknow_finbank/blob/bc72002486b90878830234af2345506e9bcf4423/docs/images/Governance/permissions_UC_group.jpeg)
 
+<br>
 
-\## 4. Control de Acceso
+Este modelo garantiza que los analistas consuman únicamente datos curados.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Principio de mínimo privilegio</b></h2>
 
-\### Storage (ADLS)
+Se implementaron controles orientados a reducir exposición de accesos:
 
+* uso de Managed Identity en Data Factory
+* permisos restringidos por servicio
+* eliminación de credenciales personales
 
+<br>
 
-\-   Data Engineers: Storage Blob Data Contributor
+Este enfoque minimiza riesgos y mejora la seguridad operativa.
 
-\-   Analysts: acceso solo a carpeta Gold (Read + Execute)
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-\-   Admins: Owner
+<h2><b>Monitoreo</b></h2>
 
+Se centralizaron logs en Log Analytics, permitiendo visibilidad sobre:
 
+* ejecución de pipelines
+* ejecución de actividades
+* estados y fallos
 
-<p align="center">
+<br>
 
-&#x20; <img src="docs/images/Governance/analyst\_permissions.jpeg" width="800"/>
+<b>Ejemplo de query:</b>
 
-</p>
+<pre>
+ADFActivityRun | where Status == "Failed"
+</pre>
 
+<br>
 
+Esto permite identificar fallos de forma rápida y estructurada.
 
-<p align="center">
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-&#x20; <img src="docs/images/Governance/engineer\_admins\_permissions.jpeg" width="800"/>
+<h2><b>Alertas</b></h2>
 
-</p>
+Se implementaron alertas basadas en Azure Monitor:
 
+* detección automática de fallos
+* evaluación periódica
+* integración con logs
 
+<br>
 
+![alertas](https://github.com/jechavarria9505/dataknow_finbank/blob/bc72002486b90878830234af2345506e9bcf4423/docs/images/Governance/alert.jpeg)
 
+<br>
 
+El objetivo es pasar de un modelo reactivo a uno proactivo.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-\### Data Factory
+<h2><b>Automatización — Logic App</b></h2>
 
+Se configuró un flujo de notificación automática:
 
+<br>
 
-\-   Data Engineers: Data Factory Contributor
+<p align="center"><b>Alert → Logic App → Email</b></p>
 
-\-   Analysts: sin acceso
+<br>
 
-\-   Admins: Owner
+<b>El correo incluye:</b>
 
+* nombre del pipeline
+* actividad fallida
+* descripción del error
+* timestamp
 
+<br>
 
-<p align="center">
+![email enviado](https://github.com/jechavarria9505/dataknow_finbank/blob/bc72002486b90878830234af2345506e9bcf4423/docs/images/Governance/send_email.jpeg)
 
-&#x20; <img src="docs/images/Governance/permissions\_adf\_group.jpeg" width="800"/>
+<br>
 
-</p>
+Esto reduce el tiempo de respuesta ante incidentes.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Conclusión</b></h2>
 
+Se implementó una solución de gobernanza y monitoreo alineada con prácticas de entornos productivos.
 
+<br>
 
-\### Log Analytics
+<b>La solución permite:</b>
 
+* control de acceso basado en roles
+* segmentación por capas de datos
+* observabilidad completa del pipeline
+* detección y notificación automática de fallos
 
+<br>
 
-\-   Data Engineers: Contributor
-
-\-   Analysts: Reader
-
-\-   Admins: Owner
-
-
-
-\---
-
-
-
-\## 5. Unity Catalog
-
-
-
-Estructura: - bronze - silver - gold
-
-
-
-Permisos:
-
-
-
-\-   Data Engineers: ALL PRIVILEGES
-
-\-   Analysts: SELECT solo en gold
-
-\-   Admins: ALL PRIVILEGES
-
-
-
-<p align="center">
-
-&#x20; <img src="docs/images/Governance/permissions\_UC\_silver\_group.jpeg" width="800"/>
-
-</p>
-
-
-
-<p align="center">
-
-&#x20; <img src="docs/images/Governance/permissions\_UC\_group.jpeg" width="800"/>
-
-</p>
-
-
-
-
-
-
-
-\---
-
-
-
-\## 6. Mínimo Privilegio
-
-
-
-\-   Uso de Managed Identity en ADF
-
-\-   Accesos limitados por servicio
-
-\-   Eliminación de credenciales personales
-
-
-
-\---
-
-
-
-\## 7. Monitoreo
-
-
-
-Logs centralizados en Log Analytics:
-
-
-
-\-   Pipeline runs
-
-\-   Activity runs
-
-
-
-Query utilizada:
-
-
-
-ADFActivityRun \\| where Status == "Failed"
-
-
-
-\---
-
-
-
-\## 8. Alertas
-
-
-
-\-   Azure Monitor basado en logs
-
-\-   Detección de fallos
-
-\-   Evaluación periódica
-
-
-
-<p align="center">
-
-&#x20; <img src="docs/images/Governance/alert.jpeg" width="800"/>
-
-</p>
-
-
-
-
-
-\---
-
-
-
-\## 9. Logic App
-
-
-
-Flujo:
-
-
-
-Alert → Logic App → Email
-
-
-
-Contenido del correo: - Pipeline - Activity - Error - Timestamp
-
-
-
-<p align="center">
-
-&#x20; <img src="docs/images/Governance/send\_email.jpeg" width="800"/>
-
-</p>
-
-
-
-
-
-\---
-
-
-
-\## 10. Conclusión
-
-
-
-Se implementó una solución de gobernanza completa con:
-
-
-
-\-   RBAC
-
-\-   Control de acceso por capa
-
-\-   Observabilidad
-
-\-   Alertamiento automático
+En conjunto, se establece una plataforma segura, auditable y preparada para operar a escala.
 
 
 
