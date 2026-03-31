@@ -1,13 +1,13 @@
 variable "location" {
-  default = "Central US"
+  default = "centralus"
 }
 
 variable "resource_group_name" {
-  default = "rg-data-engineer-test"
+  default = "rg-finbank-dataknow"
 }
 
 variable "storage_account_name" {
-  default = "stdataengtest123"
+  default = "stfinbankdata"
 }
 
 

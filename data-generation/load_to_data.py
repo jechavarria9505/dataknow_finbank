@@ -9,10 +9,10 @@ from azure.keyvault.secrets import SecretClient
 # CONFIG
 # =========================
 
-server = "sql-dataeng-test123.database.windows.net"
-database = "sqldb-dataeng-test"
+server = "sql-finbankdata.database.windows.net"
+database = "sqldb-finbankdata"
 username = "sqladminuser"
-key_vault_url = "https://kv-data-engineer-test.vault.azure.net/"
+key_vault_url = "https://kv-finbankdata.vault.azure.net/"
 
 # =========================
 # AUTH

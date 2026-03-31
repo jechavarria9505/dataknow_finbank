@@ -69,3 +69,7 @@ Thumbs.db
 build/
 dist/
 *.egg-info/
+
+data-generation/output/
+*.csv
+*.json

@@ -1,0 +1,636 @@
+{
+    "name": "PL_ingesta",
+    "properties": {
+        "activities": [
+            {
+                "name": "LU_control_ingestas",
+                "type": "Lookup",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 1,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderQuery": {
+                            "value": "SELECT *\nFROM control_ingestas\nWHERE is_active = 1",
+                            "type": "Expression"
+                        },
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "dataset": {
+                        "referenceName": "ds_sql_control_ingestas",
+                        "type": "DatasetReference"
+                    },
+                    "firstRowOnly": false
+                }
+            },
+            {
+                "name": "FE_tablas",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "LU_control_ingestas",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('LU_control_ingestas').output.value",
+                        "type": "Expression"
+                    },
+                    "activities": [
+                        {
+                            "name": "LU_validacion",
+                            "type": "Lookup",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "0.12:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "AzureSqlSource",
+                                    "sqlReaderQuery": {
+                                        "value": "@concat(\n    'SELECT ',\n    if(\n        equals(item().load_type, 'FULL'),\n        '1 as cnt, NULL as max_value',\n        concat(\n            'COUNT(1) as cnt, MAX(',\n            item().watermark_column,\n            ') as max_value'\n        )\n    ),\n    ' FROM ',\n    item().schema_name,\n    '.',\n    item().table_name,\n    if(\n        equals(item().load_type, 'FULL'),\n        '',\n        concat(\n            ' WHERE ',\n            item().watermark_column,\n            ' > ',\n            string(item().last_value)\n        )\n    )\n)",
+                                        "type": "Expression"
+                                    },
+                                    "queryTimeout": "02:00:00",
+                                    "partitionOption": "None"
+                                },
+                                "dataset": {
+                                    "referenceName": "ds_sql_control_ingestas",
+                                    "type": "DatasetReference"
+                                },
+                                "firstRowOnly": true
+                            }
+                        },
+                        {
+                            "name": "SV_start_time",
+                            "type": "SetVariable",
+                            "dependsOn": [
+                                {
+                                    "activity": "LU_validacion",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "variableName": "start_time",
+                                "value": {
+                                    "value": "@utcNow()",
+                                    "type": "Expression"
+                                }
+                            }
+                        },
+                        {
+                            "name": "If Condition1",
+                            "type": "IfCondition",
+                            "dependsOn": [
+                                {
+                                    "activity": "SV_start_time",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "expression": {
+                                    "value": "@if(\n    equals(item().load_type, 'FULL'),\n    true,\n    greater(activity('LU_validacion').output.firstRow.cnt, 0)\n)",
+                                    "type": "Expression"
+                                },
+                                "ifFalseActivities": [
+                                    {
+                                        "name": "SV_endTime",
+                                        "type": "SetVariable",
+                                        "dependsOn": [],
+                                        "policy": {
+                                            "secureOutput": false,
+                                            "secureInput": false
+                                        },
+                                        "userProperties": [],
+                                        "typeProperties": {
+                                            "variableName": "end_time",
+                                            "value": {
+                                                "value": "@utcNow()",
+                                                "type": "Expression"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "name": "SP_log_no_data",
+                                        "type": "SqlServerStoredProcedure",
+                                        "dependsOn": [
+                                            {
+                                                "activity": "SV_endTime",
+                                                "dependencyConditions": [
+                                                    "Succeeded"
+                                                ]
+                                            }
+                                        ],
+                                        "policy": {
+                                            "timeout": "0.12:00:00",
+                                            "retry": 0,
+                                            "retryIntervalInSeconds": 30,
+                                            "secureOutput": false,
+                                            "secureInput": false
+                                        },
+                                        "userProperties": [],
+                                        "typeProperties": {
+                                            "storedProcedureName": "[dbo].[sp_log_pipeline]",
+                                            "storedProcedureParameters": {
+                                                "end_time": {
+                                                    "value": {
+                                                        "value": "@variables('end_time')",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "DateTime"
+                                                },
+                                                "load_type": {
+                                                    "value": {
+                                                        "value": "@item().load_type",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "String"
+                                                },
+                                                "records_processed": {
+                                                    "value": {
+                                                        "value": "0",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "Int32"
+                                                },
+                                                "start_time": {
+                                                    "value": {
+                                                        "value": "@variables('start_time')",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "DateTime"
+                                                },
+                                                "status": {
+                                                    "value": {
+                                                        "value": "'NO_DATA'",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "String"
+                                                },
+                                                "table_name": {
+                                                    "value": {
+                                                        "value": "@item().table_name",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "String"
+                                                },
+                                                "watermark_value": {
+                                                    "value": {
+                                                        "value": "@item().last_value",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "Int64"
+                                                }
+                                            }
+                                        },
+                                        "linkedServiceName": {
+                                            "referenceName": "ls_sql_finbank",
+                                            "type": "LinkedServiceReference"
+                                        }
+                                    }
+                                ],
+                                "ifTrueActivities": [
+                                    {
+                                        "name": "CD_bronze",
+                                        "type": "Copy",
+                                        "dependsOn": [],
+                                        "policy": {
+                                            "timeout": "0.12:00:00",
+                                            "retry": 2,
+                                            "retryIntervalInSeconds": 30,
+                                            "secureOutput": false,
+                                            "secureInput": false
+                                        },
+                                        "userProperties": [],
+                                        "typeProperties": {
+                                            "source": {
+                                                "type": "AzureSqlSource",
+                                                "sqlReaderQuery": {
+                                                    "value": "@if(\n    equals(item().load_type, 'FULL'),\n\n    concat(\n        'SELECT * FROM ',\n        item().schema_name, '.', item().table_name\n    ),\n\n    concat(\n        'SELECT * FROM ',\n        item().schema_name, '.', item().table_name,\n        ' WHERE ',\n        item().watermark_column,\n        ' > ',\n        string(item().last_value)\n    )\n)",
+                                                    "type": "Expression"
+                                                },
+                                                "queryTimeout": "02:00:00",
+                                                "partitionOption": "None"
+                                            },
+                                            "sink": {
+                                                "type": "ParquetSink",
+                                                "storeSettings": {
+                                                    "type": "AzureBlobFSWriteSettings",
+                                                    "copyBehavior": {
+                                                        "value": "@if(\n    equals(item().load_type, 'FULL'),\n    'Overwrite',\n    'Append'\n)",
+                                                        "type": "Expression"
+                                                    }
+                                                },
+                                                "formatSettings": {
+                                                    "type": "ParquetWriteSettings"
+                                                }
+                                            },
+                                            "enableStaging": false,
+                                            "translator": {
+                                                "type": "TabularTranslator",
+                                                "typeConversion": true,
+                                                "typeConversionSettings": {
+                                                    "allowDataTruncation": true,
+                                                    "treatBooleanAsNumber": false
+                                                }
+                                            }
+                                        },
+                                        "inputs": [
+                                            {
+                                                "referenceName": "ds_sql_table_dynamic",
+                                                "type": "DatasetReference"
+                                            }
+                                        ],
+                                        "outputs": [
+                                            {
+                                                "referenceName": "ds_adls_bronze_dynamic",
+                                                "type": "DatasetReference",
+                                                "parameters": {
+                                                    "file_name": {
+                                                        "value": "@concat(\n    if(\n        equals(item().load_type, 'FULL'),\n        concat(item().table_name, '.parquet'),\n        ''\n    )\n)",
+                                                        "type": "Expression"
+                                                    },
+                                                    "container": {
+                                                        "value": "@item().container",
+                                                        "type": "Expression"
+                                                    },
+                                                    "folder_path": {
+                                                        "value": "@if(\n    equals(item().load_type, 'FULL'),\n\n    concat('sql_server/FinBank/', item().table_name),\n\n    concat(\n        'sql_server/FinBank/',\n        item().table_name,\n        '/', formatDateTime(utcnow(),'yyyy'),\n        '/', formatDateTime(utcnow(),'MM'),\n        '/', formatDateTime(utcnow(),'dd')\n    )\n)",
+                                                        "type": "Expression"
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "name": "NB_silver",
+                                        "type": "DatabricksNotebook",
+                                        "dependsOn": [
+                                            {
+                                                "activity": "CD_bronze",
+                                                "dependencyConditions": [
+                                                    "Succeeded"
+                                                ]
+                                            }
+                                        ],
+                                        "policy": {
+                                            "timeout": "0.12:00:00",
+                                            "retry": 2,
+                                            "retryIntervalInSeconds": 30,
+                                            "secureOutput": false,
+                                            "secureInput": false
+                                        },
+                                        "userProperties": [],
+                                        "typeProperties": {
+                                            "notebookPath": "/FinBank/bronze-a-silver/Bronze_a_Silver",
+                                            "baseParameters": {
+                                                "table_name": {
+                                                    "value": "@item().table_name",
+                                                    "type": "Expression"
+                                                },
+                                                "bronze_path": {
+                                                    "value": "@concat(\n    'abfss://bronze@stfinbankdata.dfs.core.windows.net/sql_server/FinBank/',\n    item().table_name\n)",
+                                                    "type": "Expression"
+                                                },
+                                                "load_type": {
+                                                    "value": "@item().load_type",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        },
+                                        "linkedServiceName": {
+                                            "referenceName": "ls_databricks_finbank",
+                                            "type": "LinkedServiceReference"
+                                        }
+                                    },
+                                    {
+                                        "name": "SV_recourds_count",
+                                        "type": "SetVariable",
+                                        "dependsOn": [
+                                            {
+                                                "activity": "NB_silver",
+                                                "dependencyConditions": [
+                                                    "Succeeded"
+                                                ]
+                                            }
+                                        ],
+                                        "policy": {
+                                            "secureOutput": false,
+                                            "secureInput": false
+                                        },
+                                        "userProperties": [],
+                                        "typeProperties": {
+                                            "variableName": "records_count",
+                                            "value": {
+                                                "value": "@activity('CD_bronze').output.rowsCopied",
+                                                "type": "Expression"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "name": "SV_end_time",
+                                        "type": "SetVariable",
+                                        "dependsOn": [
+                                            {
+                                                "activity": "SV_recourds_count",
+                                                "dependencyConditions": [
+                                                    "Succeeded"
+                                                ]
+                                            }
+                                        ],
+                                        "policy": {
+                                            "secureOutput": false,
+                                            "secureInput": false
+                                        },
+                                        "userProperties": [],
+                                        "typeProperties": {
+                                            "variableName": "end_time",
+                                            "value": {
+                                                "value": "@utcNow()",
+                                                "type": "Expression"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "name": "SP_log_sucess",
+                                        "type": "SqlServerStoredProcedure",
+                                        "dependsOn": [
+                                            {
+                                                "activity": "SV_end_time",
+                                                "dependencyConditions": [
+                                                    "Succeeded"
+                                                ]
+                                            }
+                                        ],
+                                        "policy": {
+                                            "timeout": "0.12:00:00",
+                                            "retry": 0,
+                                            "retryIntervalInSeconds": 30,
+                                            "secureOutput": false,
+                                            "secureInput": false
+                                        },
+                                        "userProperties": [],
+                                        "typeProperties": {
+                                            "storedProcedureName": "[dbo].[sp_log_pipeline]",
+                                            "storedProcedureParameters": {
+                                                "end_time": {
+                                                    "value": {
+                                                        "value": "@variables('end_time')",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "DateTime"
+                                                },
+                                                "load_type": {
+                                                    "value": {
+                                                        "value": "@item().load_type",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "String"
+                                                },
+                                                "records_processed": {
+                                                    "value": {
+                                                        "value": "@variables('records_count')",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "Int32"
+                                                },
+                                                "start_time": {
+                                                    "value": {
+                                                        "value": "@variables('start_time')",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "DateTime"
+                                                },
+                                                "status": {
+                                                    "value": {
+                                                        "value": "'SUCCESS'",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "String"
+                                                },
+                                                "table_name": {
+                                                    "value": {
+                                                        "value": "@item().table_name\n",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "String"
+                                                },
+                                                "watermark_value": {
+                                                    "value": {
+                                                        "value": "@activity('LU_validacion').output.firstRow.max_value",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "Int64"
+                                                }
+                                            }
+                                        },
+                                        "linkedServiceName": {
+                                            "referenceName": "ls_sql_finbank",
+                                            "type": "LinkedServiceReference"
+                                        }
+                                    },
+                                    {
+                                        "name": "SP_log_error",
+                                        "type": "SqlServerStoredProcedure",
+                                        "dependsOn": [
+                                            {
+                                                "activity": "CD_bronze",
+                                                "dependencyConditions": [
+                                                    "Failed"
+                                                ]
+                                            }
+                                        ],
+                                        "policy": {
+                                            "timeout": "0.12:00:00",
+                                            "retry": 0,
+                                            "retryIntervalInSeconds": 30,
+                                            "secureOutput": false,
+                                            "secureInput": false
+                                        },
+                                        "userProperties": [],
+                                        "typeProperties": {
+                                            "storedProcedureName": "[dbo].[sp_log_pipeline]",
+                                            "storedProcedureParameters": {
+                                                "end_time": {
+                                                    "value": {
+                                                        "value": "@variables('end_time')",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "DateTime"
+                                                },
+                                                "load_type": {
+                                                    "value": {
+                                                        "value": "@item().load_type",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "String"
+                                                },
+                                                "records_processed": {
+                                                    "value": {
+                                                        "value": "0",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "Int32"
+                                                },
+                                                "start_time": {
+                                                    "value": {
+                                                        "value": "@variables('start_time')",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "DateTime"
+                                                },
+                                                "status": {
+                                                    "value": {
+                                                        "value": "'ERROR'",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "String"
+                                                },
+                                                "table_name": {
+                                                    "value": {
+                                                        "value": "@item().table_name",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "String"
+                                                },
+                                                "watermark_value": {
+                                                    "value": {
+                                                        "value": "@item().last_value",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "Int64"
+                                                }
+                                            }
+                                        },
+                                        "linkedServiceName": {
+                                            "referenceName": "ls_sql_finbank",
+                                            "type": "LinkedServiceReference"
+                                        }
+                                    },
+                                    {
+                                        "name": "SP_update_watermark",
+                                        "type": "SqlServerStoredProcedure",
+                                        "dependsOn": [
+                                            {
+                                                "activity": "SP_log_sucess",
+                                                "dependencyConditions": [
+                                                    "Succeeded"
+                                                ]
+                                            }
+                                        ],
+                                        "policy": {
+                                            "timeout": "0.12:00:00",
+                                            "retry": 0,
+                                            "retryIntervalInSeconds": 30,
+                                            "secureOutput": false,
+                                            "secureInput": false
+                                        },
+                                        "userProperties": [],
+                                        "typeProperties": {
+                                            "storedProcedureName": "[dbo].[sp_update_watermark]",
+                                            "storedProcedureParameters": {
+                                                "new_value": {
+                                                    "value": {
+                                                        "value": "@activity('LU_validacion').output.firstRow.max_value",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "Int64"
+                                                },
+                                                "table_name": {
+                                                    "value": {
+                                                        "value": "@item().table_name",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "String"
+                                                },
+                                                "watermark_column": {
+                                                    "value": {
+                                                        "value": "@item().watermark_column",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "String"
+                                                }
+                                            }
+                                        },
+                                        "linkedServiceName": {
+                                            "referenceName": "ls_sql_finbank",
+                                            "type": "LinkedServiceReference"
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "NB_gold",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "FE_tablas",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/FinBank/silver-a-gold/Silver_a_Gold"
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_databricks_finbank",
+                    "type": "LinkedServiceReference"
+                }
+            }
+        ],
+        "variables": {
+            "start_time": {
+                "type": "String"
+            },
+            "end_time": {
+                "type": "String"
+            },
+            "records_count": {
+                "type": "Integer"
+            }
+        },
+        "annotations": [],
+        "lastPublishTime": "2026-03-27T14:03:17Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}
