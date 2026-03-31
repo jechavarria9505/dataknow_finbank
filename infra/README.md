@@ -1,378 +1,258 @@
-\# Infraestructura como Código IaC (Terraform Modular)
+<h1 align="center">Infraestructura como Código (IaC)</h1>
+<p align="center"><b>Terraform Modular — FinBank Data Platform</b></p>
 
+<br>
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-\## Descripcion
+<h2><b>Descripción</b></h2>
 
+Este componente define la infraestructura completa de la plataforma de datos utilizando Terraform, bajo un enfoque modular, desacoplado y orientado a escalabilidad.
 
+El objetivo no es únicamente aprovisionar recursos en Azure, sino establecer una base sólida que permita evolucionar la plataforma sin fricción.
 
-Este componente del proyecto define la \*\*infraestructura completa de la plataforma de datos\*\* utilizando \*\*Terraform\*\*, siguiendo un enfoque \*\*modular, desacoplado y escalable\*\*.
+<br>
 
+<b>Este enfoque permite:</b>
 
+* escalar la infraestructura de forma controlada
+* mantener el código organizado y mantenible
+* reutilizar componentes en distintos entornos
+* facilitar el trabajo colaborativo
 
-El objetivo no es solo aprovisionar recursos en Azure, sino construir una base sólida que permita:
+<br>
 
+En este contexto, la infraestructura deja de ser un conjunto de configuraciones manuales y pasa a ser un activo versionado, reproducible y auditable.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-\- Escalar la plataforma sin fricción  
+<h2><b>Enfoque arquitectónico</b></h2>
 
-\- Mantener el código de infraestructura organizado  
+La solución adopta un diseño modular, donde cada servicio de Azure se encapsula en un módulo independiente.
 
-\- Reutilizar componentes en múltiples entornos  
+<br>
 
-\- Facilitar el trabajo colaborativo entre equipos  
+<p align="center"><b>Principio clave: desacoplamiento por servicio</b></p>
 
+<br>
 
+Esto permite que cada componente evolucione de forma aislada, sin generar impacto en el resto del sistema.
 
-En otras palabras, esta capa convierte la infraestructura en un \*\*activo versionado, reproducible y mantenible\*\*.
+<hr style="border: 1px solid #eee;">
 
+<h3><b>Estructura del proyecto</b></h3>
 
-
-\---
-
-
-
-\## Enfoque Arquitectónico
-
-
-
-La solución adopta un diseño \*\*modular\*\*, donde cada servicio de Azure es encapsulado en su propio módulo independiente.
-
-
-
-Esto permite que cada componente evolucione de forma aislada, sin impactar el resto del sistema.
-
-
-
-\### Estructura del proyecto
-
-
-
+<pre>
 infra/
-
 └── modules/
+    ├── adf/
+    ├── databricks/
+    ├── keyvault/
+    ├── sql/
+    └── storage/
+</pre>
 
-&#x20;   ├── adf/
+<br>
 
-&#x20;   ├── databricks/
+Cada módulo representa un dominio específico de infraestructura, lo que aporta:
 
-&#x20;   ├── keyvault/
+* reducción de acoplamiento
+* mayor mantenibilidad
+* reutilización en otros proyectos
 
-&#x20;   ├── sql/
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-&#x20;   └── storage/
+<h2><b>Alcance de la infraestructura</b></h2>
 
+A través de los módulos definidos, se despliegan los componentes principales de la plataforma:
 
+* <b>Azure Data Factory</b> → orquestación de pipelines
+* <b>Azure Databricks</b> → procesamiento distribuido
+* <b>Azure Key Vault</b> → gestión de secretos
+* <b>Azure SQL Database</b> → capa de serving
+* <b>Azure Storage Account</b> → Data Lake
 
-Cada carpeta representa un dominio de infraestructura específico, lo cual:
+<br>
 
+En conjunto, estos servicios soportan una arquitectura tipo Medallion (Bronze / Silver / Gold).
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-\* Reduce el acoplamiento  
-
-\* Mejora la mantenibilidad  
-
-\* Facilita la reutilización en otros proyectos  
-
-
-
-\---
-
-
-
-\## Alcance de la Infraestructura
-
-
-
-A través de estos módulos se despliegan los componentes principales de la Data Platform:
-
-
-
-\- \*\*Azure Data Factory\*\* → Orquestación de pipelines  
-
-\- \*\*Azure Databricks\*\* → Procesamiento distribuido  
-
-\- \*\*Azure Key Vault\*\* → Gestión segura de secretos  
-
-\- \*\*Azure SQL Database\*\* → Capa de serving  
-
-\- \*\*Azure Storage Account\*\* → Data Lake  
-
-
-
-En conjunto, estos servicios conforman la base de una arquitectura tipo \*\*Medallion (Bronze / Silver / Gold)\*\*.
-
-
-
-\---
-
-
-
-\## Organización de Terraform
-
-
+<h2><b>Organización de Terraform</b></h2>
 
 El proyecto sigue una separación clara entre lógica, configuración y estado.
 
+<hr style="border: 1px solid #eee;">
 
+<h3><b>backend.tf</b></h3>
 
-\---
+Define el almacenamiento del estado de Terraform.
 
+<br>
 
+<b>Importancia:</b>
 
-\### backend.tf
+* habilita trabajo colaborativo
+* evita inconsistencias entre ejecuciones
+* permite trazabilidad de cambios
 
+<br>
 
+Sin un backend remoto, Terraform no escala correctamente en equipos.
 
-Define dónde se almacena el estado de Terraform.
+<hr style="border: 1px solid #eee;">
 
+<h3><b>providers.tf</b></h3>
 
+Centraliza la configuración del provider de Azure (`azurerm`), incluyendo autenticación y suscripción.
 
-Este punto es crítico porque:
+<br>
 
+Esto desacopla la infraestructura del entorno de ejecución.
 
+<hr style="border: 1px solid #eee;">
 
-\- Permite trabajo colaborativo  
-
-\- Evita inconsistencias entre ejecuciones  
-
-\- Garantiza trazabilidad de cambios  
-
-
-
-Sin backend remoto, Terraform no escala en equipos.
-
-
-
-\### providers.tf — Configuración de Azure
-
-
-
-Centraliza la configuración del provider (`azurerm`), incluyendo autenticación y suscripción.
-
-
-
-Esto desacopla la lógica de infraestructura del entorno donde se ejecuta.
-
-
-
-\### variables.tf
-
-
+<h3><b>variables.tf</b></h3>
 
 Define las variables de entrada del proyecto.
 
+<br>
 
+Aquí se establece qué elementos son configurables:
 
-Aquí se establece \*\*qué es configurable\*\*:
+* nombres de recursos
+* regiones
+* configuraciones específicas
 
-
-
-\- nombres de recursos  
-
-\- regiones  
-
-\- configuraciones específicas  
-
-
+<br>
 
 Funciona como la interfaz pública del IaC.
 
+<hr style="border: 1px solid #eee;">
 
-
-\### terraform.tfvars
-
-
+<h3><b>terraform.tfvars</b></h3>
 
 Contiene los valores concretos de las variables.
 
+<br>
 
+Permite:
 
-Esto permite:
+* manejar múltiples entornos (dev / qa / prod)
+* separar configuración del código
+* evitar hardcoding
 
+<hr style="border: 1px solid #eee;">
 
+<h3><b>main.tf</b></h3>
 
-\- Manejar múltiples entornos (dev / qa / prod)  
+Es el punto central donde se integran los módulos.
 
-\- Separar código de configuración  
+<br>
 
-\- Evitar hardcoding  
-
-
-
-\### main.tf — Orquestación
-
-
-
-Es el punto central donde se integran todos los módulos.
-
-
-
-Ejemplo conceptual:
-
-
-
+<pre>
 module "storage" {
-
-&#x20; source = "./modules/storage"
-
+  source = "./modules/storage"
 }
-
-
 
 module "sql" {
-
-&#x20; source = "./modules/sql"
-
+  source = "./modules/sql"
 }
+</pre>
 
+<br>
 
+Aquí se ensamblan todos los componentes en una infraestructura coherente.
 
-Aquí ocurre lo importante:
+<hr style="border: 1px solid #eee;">
 
+<h3><b>outputs.tf</b></h3>
 
+Define los valores expuestos tras el despliegue.
 
-Se ensamblan todos los componentes en una sola infraestructura coherente.
-
-
-
-\### outputs.tf — Exposición de Resultados
-
-
-
-Define qué valores exporta Terraform tras el despliegue.
-
-
+<br>
 
 Ejemplos:
 
+* connection strings
+* endpoints
+* nombres de recursos
 
+<br>
 
-\- connection strings  
+Permite integrar la infraestructura con otras capas del sistema.
 
-\- endpoints  
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-\- nombres de recursos  
+<h2><b>Flujo de ejecución</b></h2>
 
+El ciclo de despliegue sigue el flujo estándar de Terraform:
 
+<pre>
+terraform init
+terraform plan
+terraform apply
+</pre>
 
-Esto permite integrar la infraestructura con otras capas del sistema (ej: pipelines o aplicaciones).
+<br>
 
+<b>Interpretación del flujo:</b>
 
+* <b>init</b> → prepara el entorno
+* <b>plan</b> → valida los cambios antes de ejecutarlos
+* <b>apply</b> → aplica los cambios de forma controlada
 
-\---
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Buenas prácticas implementadas</b></h2>
 
+<b>Modularización</b>
 
-\## Flujo de Ejecución
+* servicios desacoplados por módulo
+* evolución independiente de componentes
 
+<b>Separación de responsabilidades</b>
 
+* código → archivos .tf
+* configuración → tfvars
+* estado → backend remoto
 
-El ciclo de vida del despliegue es el estándar de Terraform:
+<b>Reutilización</b>
 
+* módulos reutilizables en múltiples entornos
 
+<b>Escalabilidad organizacional</b>
 
-terraform init  
+* permite trabajo paralelo entre equipos
 
-terraform plan  
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-terraform apply  
+<h2><b>Decisiones técnicas</b></h2>
 
+| Decisión               | Justificación                              |
+| ---------------------- | ------------------------------------------ |
+| Arquitectura modular   | reduce acoplamiento y mejora mantenimiento |
+| Backend remoto         | habilita trabajo en equipo                 |
+| Variables externas     | flexibilidad entre entornos                |
+| Separación por módulos | diseño limpio y escalable                  |
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-Pero más allá de los comandos, lo importante es:
+<h2><b>Conclusión</b></h2>
 
+Esta implementación no solo despliega infraestructura, sino que establece un estándar de trabajo alineado con prácticas reales de ingeniería.
 
+<br>
 
-1\. init → prepara el entorno  
+<b>El valor de este enfoque está en:</b>
 
-2\. plan → valida cambios antes de aplicarlos  
+* organización clara de la infraestructura
+* capacidad de escalar sin reestructuración
+* facilidad de mantenimiento
+* alineación con entornos productivos
 
-3\. apply → ejecuta el despliegue de forma controlada  
+<br>
 
+En conjunto, se construye una base sólida para una plataforma de datos moderna, preparada para evolucionar de forma controlada.
 
-
-\---
-
-
-
-\## Buenas Prácticas Implementadas
-
-
-
-\### Modularización real
-
-Cada servicio está aislado en su propio módulo.
-
-
-
-Esto permite cambiar, escalar o reutilizar sin afectar otros componentes.
-
-
-
-
-
-\### Separación de responsabilidades
-
-\- Código → \*.tf  
-
-\- Configuración → tfvars  
-
-\- Estado → backend remoto  
-
-
-
-\### Reutilización
-
-Los módulos pueden ser reutilizados en otros proyectos o entornos sin modificaciones.
-
-
-
-\### Escalabilidad organizacional
-
-El diseño permite que distintos equipos trabajen en paralelo (por módulo).
-
-
-
-\---
-
-
-
-\## Decisiones Técnicas
-
-
-
-| Decisión | Justificación |
-
-|--------|-------------|
-
-| Arquitectura modular | Reduce acoplamiento y mejora mantenimiento |
-
-| Backend remoto | Permite trabajo en equipo |
-
-| Variables externas | Flexibilidad entre entornos |
-
-| Separación por módulos | Diseño limpio y escalable |
-
-
-
-\---
-
-
-
-\## Conclusión
-
-
-
-Esta implementación no solo despliega infraestructura, sino que establece:
-
-
-
-\* Un estándar de organización profesional  
-
-\* Un modelo escalable de crecimiento  
-
-\* Una base sólida para una Data Platform moderna  
-
-\* Un enfoque alineado con buenas prácticas de la industria 
 
