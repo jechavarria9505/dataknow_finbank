@@ -1,269 +1,237 @@
-## Pipeline de Ingesta Dinámica
+<h1 align="center">Pipeline de Ingesta Dinámica</h1>
+<p align="center"><b>Orquestación y Procesamiento End-to-End — FinBank Data Platform</b></p>
 
+<br>
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
----
+<h2><b>Descripción</b></h2>
 
+El pipeline <b>PL_ingesta</b> implementa un patrón de ingestión dinámico, escalable y orientado a metadata, diseñado para procesar múltiples tablas desde una fuente transaccional (Azure SQL) hacia un Data Lake bajo una arquitectura Medallion (Bronze → Silver → Gold).
 
+<br>
 
-## Descripcion
+A diferencia de enfoques tradicionales donde cada tabla requiere su propio pipeline, este diseño centraliza la lógica en un único flujo reutilizable, gobernado por una tabla de control.
 
+<br>
 
+<b>Esto permite:</b>
 
-El pipeline **`PL_ingesta`** implementa un patrón de ingestión **dinámico, escalable y orientado a metadata**, diseñado para procesar múltiples tablas desde una fuente transaccional (Azure SQL) hacia un Data Lake bajo una arquitectura **Medallion (Bronze → Silver → Gold)**.
+* reducir complejidad operativa
+* evitar duplicación de pipelines
+* mejorar mantenibilidad
+* escalar el sistema de forma controlada
 
+<br>
 
+En esencia, el pipeline actúa como un <b>motor de ingestión configurable</b>, donde el comportamiento no está codificado, sino definido por datos.
 
-A diferencia de enfoques tradicionales donde cada tabla requiere su propio pipeline este diseño centraliza la lógica en un único flujo reutilizable, gobernado por una tabla de control. Esto permite reducir complejidad operativa, mejorar la mantenibilidad y escalar el sistema sin necesidad de duplicar código.
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Arquitectura del pipeline</b></h2>
 
+![arquitectura pipeline](https://github.com/jechavarria9505/dataknow_finbank/blob/ec643dc763a3c6098249f4dce5a3ddc0b1e276e6/docs/images/Pipeline/pipeline_ingesta.jpeg)
 
-En esencia, este pipeline actúa como un **motor de ingestión configurable**, donde el comportamiento no está codificado, sino definido por datos.
+<br>
 
+Este flujo integra ingesta, transformación y procesamiento analítico en un pipeline orquestado de extremo a extremo.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
----
+<h2><b>Enfoque arquitectónico</b></h2>
 
+La solución se basa en tres principios clave:
 
+<br>
 
-## Arquitectura del Pipeline
+<b>Metadata-Driven</b>
+El comportamiento del pipeline se define desde una tabla de control, eliminando lógica hardcodeada.
 
+<br>
 
-![arquitectura pipeline ](https://github.com/jechavarria9505/dataknow_finbank/blob/4d289d7ccc656fdb26299cc8b5d20ed5bf2b9984/docs/images/Pipeline/pipeline_ingesta.jpeg)
+<b>Procesamiento dinámico</b>
+Un único pipeline es capaz de procesar múltiples tablas con diferentes configuraciones.
 
+<br>
 
+<b>Arquitectura Medallion</b>
+Se garantiza separación clara entre Bronze, Silver y Gold.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Flujo general</b></h2>
 
----
+El pipeline sigue un proceso secuencial claramente definido:
 
+<br>
 
+1. lectura de configuración desde tabla de control
+2. iteración dinámica por cada tabla
+3. validación de existencia de datos nuevos
+4. carga a Bronze (FULL o incremental)
+5. transformación en Silver (Databricks)
+6. logging y auditoría
+7. actualización de watermark
+8. procesamiento final en Gold
 
-## Enfoque Arquitectónico
+<br>
 
+Este flujo asegura control completo del ciclo de vida del dato.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
-La solución sigue un enfoque moderno basado en tres principios:
+<h2><b>Detalle del pipeline</b></h2>
 
+<h3><b>Lookup — Configuración</b></h3>
 
+Obtiene las tablas activas desde la tabla de control, incluyendo:
 
-- **Metadata-Driven** → El comportamiento se controla desde base de datos  
+* nombre de tabla
+* tipo de carga
+* watermark
+* configuración adicional
 
-- **Procesamiento Dinámico** → Un solo pipeline para múltiples tablas  
+<br>
 
-- **Arquitectura Medallion** → Separación clara por capas  
+Este paso habilita el comportamiento dinámico del pipeline.
 
+<hr style="border: 1px solid #eee;">
 
+<h3><b>ForEach — Ejecución dinámica</b></h3>
 
----
+Permite iterar sobre múltiples tablas utilizando un único flujo de procesamiento.
 
+<br>
 
+El pipeline se adapta a cada tabla sin necesidad de duplicación.
 
-## Flujo General
+<hr style="border: 1px solid #eee;">
 
+<h3><b>Validación de datos</b></h3>
 
+Evalúa si existen registros nuevos antes de ejecutar la carga.
 
-1. Lectura de configuración desde tabla de control  
+<br>
 
-2. Iteración dinámica por cada tabla  
+Evita ejecuciones innecesarias y optimiza el uso de recursos.
 
-3. Validación de datos nuevos  
+<hr style="border: 1px solid #eee;">
 
-4. Carga a Bronze (FULL o incremental)  
+<h3><b>Carga a Bronze</b></h3>
 
-5. Transformación en Silver (Databricks)  
+Se implementan dos estrategias:
 
-6. Logging y auditoría  
+* <b>FULL</b> → sobrescribe datos
+* <b>INCREMENTAL</b> → carga por particiones
 
-7. Actualización de watermark  
+<br>
 
-8. Procesamiento final en Gold  
+<b>Formato:</b> Parquet
 
+<br>
 
+Se prioriza eficiencia en almacenamiento y lectura.
 
----
+<hr style="border: 1px solid #eee;">
 
+<h3><b>Procesamiento en Silver</b></h3>
 
+Se ejecuta un notebook en Databricks que:
 
-## Detalle del Pipeline
+* limpia datos
+* valida calidad
+* aplica transformaciones
 
+<br>
 
+Este paso garantiza consistencia antes de avanzar a capas analíticas.
 
-### Lookup — Configuración
+<hr style="border: 1px solid #eee;">
 
+<h3><b>Logging y auditoría</b></h3>
 
+Se registra el estado de ejecución:
 
-Obtiene las tablas activas a procesar:
+* SUCCESS
+* ERROR
+* NO_DATA
 
+<br>
 
+Incluye:
 
-- tabla  
+* timestamps
+* número de registros
+* tipo de carga
 
-- tipo de carga  
+<br>
 
-- watermark  
+Esto permite trazabilidad completa del pipeline.
 
-- configuración  
+<hr style="border: 1px solid #eee;">
 
+<h3><b>Watermark</b></h3>
 
+Se actualiza el valor máximo procesado para soportar cargas incrementales.
 
----
+<br>
 
+Evita reprocesamiento y garantiza continuidad.
 
+<hr style="border: 1px solid #eee;">
 
-### ForEach — Ejecución dinámica
+<h3><b>Procesamiento en Gold</b></h3>
 
+Se ejecuta un notebook final que construye:
 
+* modelo analítico
+* KPIs
+* vistas de negocio
 
-Permite procesar múltiples tablas usando el mismo flujo.
+<br>
 
+Completa el flujo end-to-end.
 
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
----
+<h2><b>Variables del pipeline</b></h2>
 
-
-
-### Validación
-
-
-
-Evalúa si existen datos nuevos antes de ejecutar la carga.
-
-
-
----
-
-
-
-### Copy a Bronze
-
-
-
-- FULL → sobrescribe  
-
-- INCREMENTAL → particiona por fecha  
-
-
-
-Formato: **Parquet**
-
-
-
----
-
-
-
-### Procesamiento Silver
-
-
-
-Notebook en Databricks que:
-
-
-
-- limpia datos  
-
-- valida  
-
-- transforma  
-
-
-
----
-
-
-
-### Logging
-
-
-
-Registra:
-
-
-
-- SUCCESS  
-
-- ERROR  
-
-- NO_DATA  
-
-
-
-Incluye métricas y timestamps.
-
-
-
----
-
-
-
-### Watermark
-
-
-
-Actualiza el último valor procesado para cargas incrementales.
-
-
-
----
-
-
-
-### Gold Layer
-
-
-
-Notebook final que construye modelos analíticos.
-
-
-
----
-
-
-
-## Variables
-
-
-
-| Variable | Descripción |
-
-|--------|------------|
-
-| start_time | inicio ejecución |
-
-| end_time | fin ejecución |
-
+| Variable      | Descripción          |
+| ------------- | -------------------- |
+| start_time    | inicio de ejecución  |
+| end_time      | fin de ejecución     |
 | records_count | registros procesados |
 
+<br>
 
+Permiten monitorear ejecución y medir desempeño.
 
----
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Características clave</b></h2>
 
+* diseño completamente escalable
+* parametrización avanzada
+* soporte para cargas FULL e incremental
+* trazabilidad y auditoría completa
+* integración end-to-end entre capas
 
-## Características Clave
+<hr style="height:2px;border:none;background-color:#eaeaea;">
 
+<h2><b>Conclusión</b></h2>
 
+Este pipeline representa un diseño moderno de orquestación de datos, donde la lógica se desacopla del código y se controla mediante metadata.
 
-- Diseño escalable  
+<br>
 
-- Alta parametrización  
+<b>El resultado es una solución:</b>
 
-- Soporte FULL + incremental  
+* reutilizable
+* mantenible
+* escalable
+* alineada con prácticas reales de Data Engineering
 
-- Auditoría completa  
+<br>
 
-- Integración end-to-end  
-
-
-
----
-
-
-
-## Conclusión
-
-
-
-Este pipeline representa un diseño **robusto, reutilizable y alineado con prácticas reales de Data Engineering**, permitiendo construir una plataforma de datos moderna, gobernada y escalable.
+En conjunto, actúa como el eje central de la plataforma, conectando ingesta, procesamiento y analítica en un flujo coherente y controlado.
 
