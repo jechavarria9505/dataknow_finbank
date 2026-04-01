@@ -31,6 +31,8 @@ En esencia, el pipeline actúa como un <b>motor de ingestión configurable</b>, 
 <h2><b>Arquitectura del pipeline</b></h2>
 
 ![arquitectura pipeline](https://github.com/jechavarria9505/dataknow_finbank/blob/ec643dc763a3c6098249f4dce5a3ddc0b1e276e6/docs/images/Pipeline/pipeline_ingesta.jpeg)
+![arquitectura pipeline2](https://github.com/jechavarria9505/dataknow_finbank/blob/b4bf10d2a65e66a51f6063ced3c7e291961e01a2/docs/images/Pipeline/pipeline_2.jpeg)
+![arquitectura pipeline3](https://github.com/jechavarria9505/dataknow_finbank/blob/b4bf10d2a65e66a51f6063ced3c7e291961e01a2/docs/images/Pipeline/pipeline_3.jpeg)
 
 <br>
 
